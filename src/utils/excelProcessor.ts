@@ -1,4 +1,3 @@
-
 import * as XLSX from 'xlsx';
 import { Transaction } from '../types/transaction';
 
@@ -21,51 +20,49 @@ export const processExcelFile = async (file: File): Promise<Transaction[]> => {
     
     const transactions: Transaction[] = [];
     
-    // Skip metadata rows and find the header row
-    // Look for the row that contains column headers
-    let headerRowIndex = -1;
+    // Find the actual transaction data header row
+    // Look for "Transaction Date" or "Date" in the first column
+    let dataStartIndex = -1;
     for (let i = 0; i < jsonData.length; i++) {
       const row = jsonData[i] as any[];
-      if (row && row.some(cell => 
-        cell && typeof cell === 'string' && 
-        (cell.toLowerCase().includes('date') || 
-         cell.toLowerCase().includes('particular') || 
-         cell.toLowerCase().includes('deposit') ||
-         cell.toLowerCase().includes('credit'))
-      )) {
-        headerRowIndex = i;
-        break;
+      if (row && row[0] && typeof row[0] === 'string') {
+        const firstCell = row[0].toString().toLowerCase();
+        if (firstCell.includes('transaction date') || 
+            (firstCell.includes('date') && row[1] && row[1].toString().toLowerCase().includes('particular'))) {
+          dataStartIndex = i;
+          console.log('Found transaction header at index:', i);
+          break;
+        }
       }
     }
     
-    if (headerRowIndex === -1) {
-      throw new Error('Could not find header row in Excel file');
+    if (dataStartIndex === -1) {
+      throw new Error('Could not find transaction data section in Excel file');
     }
     
-    console.log('Header row found at index:', headerRowIndex);
-    console.log('Header row:', jsonData[headerRowIndex]);
+    console.log('Transaction data starts at index:', dataStartIndex);
+    console.log('Header row:', jsonData[dataStartIndex]);
     
     // Process transactions starting from the row after header
-    for (let i = headerRowIndex + 1; i < jsonData.length; i++) {
+    for (let i = dataStartIndex + 1; i < jsonData.length; i++) {
       const row = jsonData[i] as any[];
       
-      // Skip empty rows
-      if (!row || row.length === 0 || !row[0]) continue;
+      // Skip empty rows or rows without proper data
+      if (!row || row.length < 5 || !row[0] || !row[1]) continue;
       
       const date = row[0]?.toString() || '';
-      const valueDate = row[1]?.toString() || '';
-      const particulars = row[2]?.toString() || '';
-      const withdrawal = parseFloat(row[3]?.toString().replace(/[^\d.-]/g, '') || '0') || 0;
-      const deposit = parseFloat(row[4]?.toString().replace(/[^\d.-]/g, '') || '0') || 0;
-      const balance = parseFloat(row[5]?.toString().replace(/[^\d.-]/g, '') || '0') || 0;
+      const particulars = row[1]?.toString() || '';
+      const withdrawal = parseFloat(row[2]?.toString().replace(/[^\d.-]/g, '') || '0') || 0;
+      const deposit = parseFloat(row[3]?.toString().replace(/[^\d.-]/g, '') || '0') || 0;
+      const balance = parseFloat(row[4]?.toString().replace(/[^\d.-]/g, '') || '0') || 0;
       
       console.log(`Row ${i}: Date=${date}, Particulars=${particulars}, Deposit=${deposit}, Withdrawal=${withdrawal}`);
       
       // Process only credit transactions (deposits > 0) that contain "dLITTIc"
-      if (deposit > 0 && particulars.includes('dLITTIc')) {
+      if (deposit > 0 && particulars.toLowerCase().includes('dlittlc')) {
         console.log(`Processing dLITTIc credit transaction: ${particulars} - ₹${deposit}`);
         
-        // Parse order details from transaction description
+        // Parse order details from transaction amount
         const orderDetails = parseOrderFromAmount(deposit);
         
         if (orderDetails) {
@@ -83,7 +80,7 @@ export const processExcelFile = async (file: File): Promise<Transaction[]> => {
           const transaction: Transaction = {
             id: `txn-${Date.now()}-${i}`,
             date,
-            valueDate,
+            valueDate: date, // Using same date as value date
             details: particulars,
             paidAmount: deposit,
             fullPlate: finalOrder.fullPlate,
@@ -96,6 +93,7 @@ export const processExcelFile = async (file: File): Promise<Transaction[]> => {
           };
           
           transactions.push(transaction);
+          console.log('Added transaction:', transaction);
         }
       }
     }
