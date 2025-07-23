@@ -10,7 +10,11 @@ const MENU_PRICES = {
   packing: 5
 };
 
-export const processExcelFile = async (file: File): Promise<Transaction[]> => {
+export const processExcelFile = async (
+  file: File, 
+  startDate?: Date | null, 
+  endDate?: Date | null
+): Promise<Transaction[]> => {
   try {
     const arrayBuffer = await file.arrayBuffer();
     const workbook = XLSX.read(arrayBuffer, { type: 'array' });
@@ -64,13 +68,33 @@ export const processExcelFile = async (file: File): Promise<Transaction[]> => {
                          transactionDate.trim() !== '' && 
                          !transactionDate.toLowerCase().includes('transaction date');
       
+      // Parse transaction date for filtering
+      let transactionDateObj: Date | null = null;
+      if (isValidDate) {
+        // Try to parse the date from the transaction
+        transactionDateObj = parseTransactionDate(transactionDate);
+      }
+      
+      // Apply date range filter if dates are provided
+      let isInDateRange = true;
+      if (transactionDateObj && (startDate || endDate)) {
+        if (startDate && transactionDateObj < startDate) {
+          isInDateRange = false;
+        }
+        if (endDate && transactionDateObj > endDate) {
+          isInDateRange = false;
+        }
+      }
+      
       // Filter conditions:
       // 1. Must have a valid transaction date
       // 2. Must be a credit transaction (credit > 0)
       // 3. Must contain "dlittic" at the end of particulars
+      // 4. Must be within the specified date range (if provided)
       if (isValidDate && 
           credit > 0 && 
-          particulars.toLowerCase().trim().endsWith('dlittic')) {
+          particulars.toLowerCase().trim().endsWith('dlittic') &&
+          isInDateRange) {
         console.log(`Processing dLittic credit transaction: ${particulars} - ₹${credit}`);
         
         // Parse order details from transaction amount
@@ -116,6 +140,35 @@ export const processExcelFile = async (file: File): Promise<Transaction[]> => {
     console.error('Error processing Excel file:', error);
     throw new Error('Failed to process Excel file. Please ensure it\'s a valid IDFC First Bank statement.');
   }
+};
+
+const parseTransactionDate = (dateString: string): Date | null => {
+  // Try different date formats commonly used in bank statements
+  const formats = [
+    /(\d{1,2})\/(\d{1,2})\/(\d{4})/,  // DD/MM/YYYY or MM/DD/YYYY
+    /(\d{1,2})-(\d{1,2})-(\d{4})/,   // DD-MM-YYYY or MM-DD-YYYY
+    /(\d{4})-(\d{1,2})-(\d{1,2})/,   // YYYY-MM-DD
+    /(\d{1,2})\.(\d{1,2})\.(\d{4})/  // DD.MM.YYYY
+  ];
+  
+  for (const format of formats) {
+    const match = dateString.match(format);
+    if (match) {
+      const [, part1, part2, part3] = match;
+      
+      // For YYYY-MM-DD format
+      if (format.source.includes('(\\d{4})-(\\d{1,2})-(\\d{1,2})')) {
+        return new Date(parseInt(part1), parseInt(part2) - 1, parseInt(part3));
+      }
+      
+      // For other formats, assume DD/MM/YYYY (Indian bank format)
+      return new Date(parseInt(part3), parseInt(part2) - 1, parseInt(part1));
+    }
+  }
+  
+  // Fallback: try to parse as a standard date
+  const fallbackDate = new Date(dateString);
+  return isNaN(fallbackDate.getTime()) ? null : fallbackDate;
 };
 
 const parseOrderFromAmount = (paidAmount: number): any | null => {
