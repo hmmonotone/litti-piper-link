@@ -2,7 +2,7 @@
 import * as XLSX from 'xlsx';
 import { Transaction } from '../types/transaction';
 
-// Menu prices
+// Menu prices in Indian Rupees
 const MENU_PRICES = {
   fullPlate: 89,
   halfPlate: 49,
@@ -21,8 +21,32 @@ export const processExcelFile = async (file: File): Promise<Transaction[]> => {
     
     const transactions: Transaction[] = [];
     
-    // Skip metadata rows (1-6) and header row (7), start from row 8 (index 7)
-    for (let i = 7; i < jsonData.length; i++) {
+    // Skip metadata rows and find the header row
+    // Look for the row that contains column headers
+    let headerRowIndex = -1;
+    for (let i = 0; i < jsonData.length; i++) {
+      const row = jsonData[i] as any[];
+      if (row && row.some(cell => 
+        cell && typeof cell === 'string' && 
+        (cell.toLowerCase().includes('date') || 
+         cell.toLowerCase().includes('particular') || 
+         cell.toLowerCase().includes('deposit') ||
+         cell.toLowerCase().includes('credit'))
+      )) {
+        headerRowIndex = i;
+        break;
+      }
+    }
+    
+    if (headerRowIndex === -1) {
+      throw new Error('Could not find header row in Excel file');
+    }
+    
+    console.log('Header row found at index:', headerRowIndex);
+    console.log('Header row:', jsonData[headerRowIndex]);
+    
+    // Process transactions starting from the row after header
+    for (let i = headerRowIndex + 1; i < jsonData.length; i++) {
       const row = jsonData[i] as any[];
       
       // Skip empty rows
@@ -30,40 +54,43 @@ export const processExcelFile = async (file: File): Promise<Transaction[]> => {
       
       const date = row[0]?.toString() || '';
       const valueDate = row[1]?.toString() || '';
-      const details = row[2]?.toString() || '';
-      const withdrawal = parseFloat(row[3]?.toString() || '0') || 0;
-      const deposit = parseFloat(row[4]?.toString() || '0') || 0;
-      const balance = parseFloat(row[5]?.toString() || '0') || 0;
+      const particulars = row[2]?.toString() || '';
+      const withdrawal = parseFloat(row[3]?.toString().replace(/[^\d.-]/g, '') || '0') || 0;
+      const deposit = parseFloat(row[4]?.toString().replace(/[^\d.-]/g, '') || '0') || 0;
+      const balance = parseFloat(row[5]?.toString().replace(/[^\d.-]/g, '') || '0') || 0;
       
-      // Process only credit transactions (deposits > 0)
-      if (deposit > 0) {
-        console.log(`Processing credit transaction: ${details} - ₹${deposit}`);
+      console.log(`Row ${i}: Date=${date}, Particulars=${particulars}, Deposit=${deposit}, Withdrawal=${withdrawal}`);
+      
+      // Process only credit transactions (deposits > 0) that contain "dLITTIc"
+      if (deposit > 0 && particulars.includes('dLITTIc')) {
+        console.log(`Processing dLITTIc credit transaction: ${particulars} - ₹${deposit}`);
         
         // Parse order details from transaction description
-        const orderDetails = parseOrderFromDetails(details, deposit);
+        const orderDetails = parseOrderFromAmount(deposit);
         
         if (orderDetails) {
           const expectedCost = calculateExpectedCost(orderDetails);
-          const adjustment = calculateAdjustment(deposit, expectedCost);
+          let adjustment = deposit - expectedCost;
           
           // Apply water adjustment if overpaid by more than ₹10
           let finalOrder = { ...orderDetails };
-          if (deposit - expectedCost > 10) {
-            const extraWater = Math.floor((deposit - expectedCost) / 10);
+          if (adjustment > 10) {
+            const extraWater = Math.floor(adjustment / 10);
             finalOrder.water += extraWater;
+            adjustment = adjustment % 10;
           }
           
           const transaction: Transaction = {
             id: `txn-${Date.now()}-${i}`,
             date,
             valueDate,
-            details,
+            details: particulars,
             paidAmount: deposit,
             fullPlate: finalOrder.fullPlate,
             halfPlate: finalOrder.halfPlate,
             water: finalOrder.water,
             packing: finalOrder.packing,
-            expectedCost,
+            expectedCost: calculateExpectedCost(finalOrder),
             adjustment,
             status: 'success'
           };
@@ -73,7 +100,7 @@ export const processExcelFile = async (file: File): Promise<Transaction[]> => {
       }
     }
     
-    console.log(`Processed ${transactions.length} credit transactions`);
+    console.log(`Processed ${transactions.length} dLITTIc credit transactions`);
     return transactions;
     
   } catch (error) {
@@ -82,86 +109,48 @@ export const processExcelFile = async (file: File): Promise<Transaction[]> => {
   }
 };
 
-const parseOrderFromDetails = (details: string, paidAmount: number): any | null => {
-  // This is a simplified parser - in reality, you'd need more sophisticated logic
-  // to extract order details from transaction descriptions
+const parseOrderFromAmount = (paidAmount: number): any | null => {
+  console.log(`Parsing order from amount: ₹${paidAmount}`);
   
-  console.log(`Parsing order from: ${details}`);
+  // Start with the most expensive items first (full plates)
+  let remainingAmount = paidAmount;
+  let fullPlate = 0;
+  let halfPlate = 0;
+  let water = 0;
+  let packing = 0;
   
-  // For now, we'll use a simple heuristic based on amount paid
-  // This should be replaced with actual parsing logic based on your transaction format
-  
-  if (paidAmount >= 89) {
-    const fullPlates = Math.floor(paidAmount / 89);
-    const remainder = paidAmount % 89;
-    
-    let halfPlates = 0;
-    let water = 0;
-    let packing = 0;
-    
-    if (remainder >= 49) {
-      halfPlates = Math.floor(remainder / 49);
-      const newRemainder = remainder % 49;
-      
-      if (newRemainder >= 10) {
-        water = Math.floor(newRemainder / 10);
-        const finalRemainder = newRemainder % 10;
-        
-        if (finalRemainder >= 5) {
-          packing = Math.floor(finalRemainder / 5);
-        }
-      }
-    }
-    
-    return {
-      fullPlate: fullPlates,
-      halfPlate: halfPlates,
-      water: water,
-      packing: packing
-    };
-  } else if (paidAmount >= 49) {
-    const halfPlates = Math.floor(paidAmount / 49);
-    const remainder = paidAmount % 49;
-    
-    let water = 0;
-    let packing = 0;
-    
-    if (remainder >= 10) {
-      water = Math.floor(remainder / 10);
-      const finalRemainder = remainder % 10;
-      
-      if (finalRemainder >= 5) {
-        packing = Math.floor(finalRemainder / 5);
-      }
-    }
-    
-    return {
-      fullPlate: 0,
-      halfPlate: halfPlates,
-      water: water,
-      packing: packing
-    };
-  } else {
-    // For small amounts, assume it's water and packing
-    let water = 0;
-    let packing = 0;
-    
-    if (paidAmount >= 10) {
-      water = Math.floor(paidAmount / 10);
-      const remainder = paidAmount % 10;
-      
-      if (remainder >= 5) {
-        packing = Math.floor(remainder / 5);
-      }
-    }
-    
-    return {
-      fullPlate: 0,
-      halfPlate: 0,
-      water: water,
-      packing: packing
-    };
+  // Calculate full plates
+  if (remainingAmount >= MENU_PRICES.fullPlate) {
+    fullPlate = Math.floor(remainingAmount / MENU_PRICES.fullPlate);
+    remainingAmount = remainingAmount % MENU_PRICES.fullPlate;
   }
+  
+  // Calculate half plates
+  if (remainingAmount >= MENU_PRICES.halfPlate) {
+    halfPlate = Math.floor(remainingAmount / MENU_PRICES.halfPlate);
+    remainingAmount = remainingAmount % MENU_PRICES.halfPlate;
+  }
+  
+  // Calculate water
+  if (remainingAmount >= MENU_PRICES.water) {
+    water = Math.floor(remainingAmount / MENU_PRICES.water);
+    remainingAmount = remainingAmount % MENU_PRICES.water;
+  }
+  
+  // Calculate packing
+  if (remainingAmount >= MENU_PRICES.packing) {
+    packing = Math.floor(remainingAmount / MENU_PRICES.packing);
+    remainingAmount = remainingAmount % MENU_PRICES.packing;
+  }
+  
+  console.log(`Parsed order: Full=${fullPlate}, Half=${halfPlate}, Water=${water}, Packing=${packing}, Remaining=₹${remainingAmount}`);
+  
+  return {
+    fullPlate,
+    halfPlate,
+    water,
+    packing
+  };
 };
 
 const calculateExpectedCost = (orderDetails: any): number => {
@@ -171,22 +160,6 @@ const calculateExpectedCost = (orderDetails: any): number => {
     orderDetails.water * MENU_PRICES.water +
     orderDetails.packing * MENU_PRICES.packing
   );
-};
-
-const calculateAdjustment = (paidAmount: number, expectedCost: number): number => {
-  const difference = paidAmount - expectedCost;
-  
-  if (difference <= 10 && difference > 0) {
-    // Straight rounding for small overpayments
-    return difference;
-  } else if (difference > 10) {
-    // For larger overpayments, calculate remainder after extra water
-    const remainder = difference % 10;
-    return remainder;
-  }
-  
-  // For exact payments or underpayments
-  return difference;
 };
 
 export const processRealExcelFile = async (file: File): Promise<Transaction[]> => {
