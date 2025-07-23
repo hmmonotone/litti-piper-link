@@ -59,14 +59,19 @@ export const processExcelFile = async (file: File): Promise<Transaction[]> => {
       
       console.log(`Row ${i}: TransactionDate=${transactionDate}, Particulars=${particulars}, Credit=${credit}, Debit=${debit}`);
       
+      // Check if transaction date is valid (not empty and not just a date header)
+      const isValidDate = transactionDate && 
+                         transactionDate.trim() !== '' && 
+                         !transactionDate.toLowerCase().includes('transaction date');
+      
       // Filter conditions:
       // 1. Must have a valid transaction date
       // 2. Must be a credit transaction (credit > 0)
-      // 3. Must contain "dLITTIc" at the end of particulars
-      if (transactionDate && 
+      // 3. Must contain "dlittic" at the end of particulars
+      if (isValidDate && 
           credit > 0 && 
-          particulars.toLowerCase().trim().endsWith('dlittlc')) {
-        console.log(`Processing dLITTIc credit transaction: ${particulars} - ₹${credit}`);
+          particulars.toLowerCase().trim().endsWith('dlittic')) {
+        console.log(`Processing dLittic credit transaction: ${particulars} - ₹${credit}`);
         
         // Parse order details from transaction amount
         const orderDetails = parseOrderFromAmount(credit);
@@ -104,7 +109,7 @@ export const processExcelFile = async (file: File): Promise<Transaction[]> => {
       }
     }
     
-    console.log(`Processed ${transactions.length} dLITTIc credit transactions`);
+    console.log(`Processed ${transactions.length} dLittic credit transactions`);
     return transactions;
     
   } catch (error) {
