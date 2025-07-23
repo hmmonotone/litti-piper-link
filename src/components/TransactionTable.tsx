@@ -1,7 +1,9 @@
 
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { CheckCircle, AlertCircle, Clock } from 'lucide-react';
 import { Transaction } from '../types/transaction';
+import DateRangeFilter from './DateRangeFilter';
+import { parseISO, isWithinInterval, parse, isValid } from 'date-fns';
 
 interface TransactionTableProps {
   transactions: Transaction[];
@@ -9,6 +11,65 @@ interface TransactionTableProps {
 }
 
 const TransactionTable: React.FC<TransactionTableProps> = ({ transactions, isProcessing }) => {
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+
+  const filteredTransactions = useMemo(() => {
+    if (!startDate && !endDate) return transactions;
+
+    return transactions.filter(transaction => {
+      // Parse the transaction date - handle various formats
+      let transactionDate: Date | null = null;
+      
+      // Try different date formats
+      const dateStr = transaction.date.trim();
+      
+      // Try DD/MM/YYYY format first
+      if (dateStr.includes('/')) {
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+          const day = parseInt(parts[0]);
+          const month = parseInt(parts[1]) - 1; // Month is 0-indexed
+          const year = parseInt(parts[2]);
+          transactionDate = new Date(year, month, day);
+        }
+      }
+      
+      // Try other formats if needed
+      if (!transactionDate || !isValid(transactionDate)) {
+        try {
+          transactionDate = parse(dateStr, 'dd/MM/yyyy', new Date());
+        } catch {
+          try {
+            transactionDate = parseISO(dateStr);
+          } catch {
+            return true; // If we can't parse the date, include it
+          }
+        }
+      }
+
+      if (!transactionDate || !isValid(transactionDate)) {
+        return true; // Include transactions with unparseable dates
+      }
+
+      // Check if date is within range
+      if (startDate && endDate) {
+        return isWithinInterval(transactionDate, { start: startDate, end: endDate });
+      } else if (startDate) {
+        return transactionDate >= startDate;
+      } else if (endDate) {
+        return transactionDate <= endDate;
+      }
+
+      return true;
+    });
+  }, [transactions, startDate, endDate]);
+
+  const handleClearFilter = () => {
+    setStartDate(null);
+    setEndDate(null);
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'success':
@@ -67,9 +128,22 @@ const TransactionTable: React.FC<TransactionTableProps> = ({ transactions, isPro
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
-      <h3 className="text-2xl font-bold mb-6">Processed Transactions</h3>
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-2xl font-bold">Processed Transactions</h3>
+        <span className="text-sm text-gray-500">
+          {filteredTransactions.length} of {transactions.length} transactions
+        </span>
+      </div>
+
+      <DateRangeFilter
+        startDate={startDate}
+        endDate={endDate}
+        onStartDateChange={setStartDate}
+        onEndDateChange={setEndDate}
+        onClear={handleClearFilter}
+      />
       
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto mt-4">
         <table className="w-full table-auto">
           <thead>
             <tr className="bg-gray-50">
@@ -86,7 +160,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({ transactions, isPro
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {transactions.map((transaction) => (
+            {filteredTransactions.map((transaction) => (
               <tr key={transaction.id} className="hover:bg-gray-50">
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                   {transaction.date}
