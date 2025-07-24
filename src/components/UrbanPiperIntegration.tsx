@@ -3,7 +3,6 @@ import { Send, Loader2, CheckCircle, AlertCircle, Settings, Eye } from 'lucide-r
 import { Transaction } from '../types/transaction';
 import { urbanPiperAutomation, AutomationConfig, AutomationResult } from '../services/urbanPiperAutomation';
 import { useToast } from '../hooks/use-toast';
-import CorsNotice from './CorsNotice';
 import BrowserLimitationNotice from './BrowserLimitationNotice';
 
 interface UrbanPiperIntegrationProps {
@@ -50,20 +49,10 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
       headless: settings.headless
     };
     
-    // Update the automation service configuration
     Object.assign(urbanPiperAutomation, new (urbanPiperAutomation.constructor as any)(config));
   };
 
   const createSingleOrder = async (transaction: Transaction) => {
-    if (!settings.username || !settings.password) {
-      toast({
-        title: "Configuration Required",
-        description: "Please configure your Urban Piper credentials first",
-        variant: "destructive"
-      });
-      return;
-    }
-
     setOrderStatuses(prev => [...prev.filter(s => s.transactionId !== transaction.id), {
       transactionId: transaction.id,
       status: 'creating'
@@ -72,7 +61,8 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
     try {
       updateAutomationConfig();
       
-      const result: AutomationResult = await urbanPiperAutomation.createOrder(transaction);
+      // Use the mock API method instead of actual automation
+      const result: AutomationResult = await urbanPiperAutomation.createOrderViaAPI(transaction);
       
       if (result.success) {
         setOrderStatuses(prev => [...prev.filter(s => s.transactionId !== transaction.id), {
@@ -85,8 +75,8 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
         onOrderCreated?.(transaction.id, result.orderId || '');
         
         toast({
-          title: "Order Created Successfully",
-          description: `Order ${result.orderId} created for ₹${transaction.paidAmount}`,
+          title: "Order Created Successfully (Demo)",
+          description: `Mock order ${result.orderId} created for ₹${transaction.paidAmount}`,
         });
       } else {
         throw new Error(result.error || 'Unknown error');
@@ -110,15 +100,6 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
   };
 
   const createAllOrders = async () => {
-    if (!settings.username || !settings.password) {
-      toast({
-        title: "Configuration Required",
-        description: "Please configure your Urban Piper credentials first",
-        variant: "destructive"
-      });
-      return;
-    }
-
     setIsProcessing(true);
     
     try {
@@ -126,12 +107,12 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
       
       for (const transaction of transactions) {
         await createSingleOrder(transaction);
-        // Add delay between orders to avoid overwhelming the system
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Add delay between orders
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
       
       toast({
-        title: "Bulk Order Creation Complete",
+        title: "Bulk Order Creation Complete (Demo)",
         description: `Processed ${transactions.length} transactions`,
       });
       
@@ -189,7 +170,7 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-2xl font-bold flex items-center gap-2">
           <Send className="h-6 w-6 text-blue-600" />
-          Urban Piper Automation
+          Urban Piper Automation (Demo)
         </h3>
         <div className="flex items-center gap-2">
           <button
@@ -201,7 +182,7 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
           </button>
           <button
             onClick={createAllOrders}
-            disabled={isProcessing || !settings.username || !settings.password}
+            disabled={isProcessing}
             className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {isProcessing ? (
@@ -212,7 +193,7 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
             ) : (
               <>
                 <Send className="h-4 w-4" />
-                Create All Orders
+                Create All Orders (Demo)
               </>
             )}
           </button>
@@ -223,7 +204,7 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
 
       {showSettings && (
         <div className="bg-gray-50 rounded-lg p-4 mb-6">
-          <h4 className="font-semibold mb-4">Automation Settings</h4>
+          <h4 className="font-semibold mb-4">Demo Settings</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Portal URL</label>
@@ -236,23 +217,23 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Username (Demo)</label>
               <input
                 type="text"
                 value={settings.username}
                 onChange={(e) => setSettings(prev => ({ ...prev, username: e.target.value }))}
                 className="w-full border border-gray-300 rounded px-3 py-2"
-                placeholder="Your Urban Piper username"
+                placeholder="demo@example.com"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password (Demo)</label>
               <input
                 type="password"
                 value={settings.password}
                 onChange={(e) => setSettings(prev => ({ ...prev, password: e.target.value }))}
                 className="w-full border border-gray-300 rounded px-3 py-2"
-                placeholder="Your Urban Piper password"
+                placeholder="demo123"
               />
             </div>
             <div className="flex items-center">
@@ -264,7 +245,7 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
                 className="mr-2"
               />
               <label htmlFor="headless" className="text-sm font-medium text-gray-700">
-                Run in headless mode (background)
+                Headless mode (demo setting)
               </label>
             </div>
           </div>
@@ -298,7 +279,7 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
                   {status && (
                     <div className={`mt-2 text-sm ${getStatusColor(status.status)}`}>
                       {status.status === 'success' && status.orderId && (
-                        <span>Order created: {status.orderId}</span>
+                        <span>Demo order created: {status.orderId}</span>
                       )}
                       {status.status === 'error' && status.error && (
                         <span>Error: {status.error}</span>
@@ -310,19 +291,9 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
                 <div className="flex items-center gap-3">
                   {status && getStatusIcon(status.status)}
                   
-                  {status?.screenshot && (
-                    <button
-                      onClick={() => setSelectedScreenshot(status.screenshot!)}
-                      className="text-blue-600 hover:text-blue-800"
-                      title="View screenshot"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
-                  )}
-                  
                   <button
                     onClick={() => createSingleOrder(transaction)}
-                    disabled={status?.status === 'creating' || isProcessing || !settings.username || !settings.password}
+                    disabled={status?.status === 'creating' || isProcessing}
                     className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   >
                     {status?.status === 'creating' ? (
@@ -333,7 +304,7 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
                     ) : (
                       <>
                         <Send className="h-4 w-4" />
-                        Create Order
+                        Create Order (Demo)
                       </>
                     )}
                   </button>
@@ -343,27 +314,6 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
           );
         })}
       </div>
-
-      {selectedScreenshot && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-4 max-w-4xl max-h-[90vh] overflow-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Order Screenshot</h3>
-              <button
-                onClick={() => setSelectedScreenshot(null)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ×
-              </button>
-            </div>
-            <img
-              src={`data:image/png;base64,${selectedScreenshot}`}
-              alt="Order screenshot"
-              className="max-w-full h-auto"
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 };
