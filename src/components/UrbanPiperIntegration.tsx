@@ -4,6 +4,7 @@ import { Send, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { Transaction } from '../types/transaction';
 import { urbanPiperService } from '../services/urbanPiperService';
 import { useToast } from '../hooks/use-toast';
+import CorsNotice from './CorsNotice';
 
 interface UrbanPiperIntegrationProps {
   transactions: Transaction[];
@@ -130,6 +131,8 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
+      <CorsNotice />
+      
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-2xl font-bold flex items-center gap-2">
           <Send className="h-6 w-6 text-blue-600" />

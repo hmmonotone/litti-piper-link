@@ -1,4 +1,3 @@
-
 import { UrbanPiperConfig, UrbanPiperOrder, UrbanPiperResponse } from '../types/urbanPiper';
 import { Transaction } from '../types/transaction';
 
@@ -30,10 +29,10 @@ const PRODUCT_MAPPING = {
     sku: "1040"
   },
   halfPlate: {
-    variantId: 1336766, // Placeholder - needs actual half plate variant ID
-    productId: 1339680, // Placeholder - needs actual half plate product ID
+    variantId: 1336766,
+    productId: 1339680,
     name: "Stall Litti Chokha Half",
-    modifierId: 680846, // Placeholder - needs actual half modifier ID
+    modifierId: 680846,
     modifierName: "Half",
     price: 49,
     categoryId: 194536,
@@ -41,20 +40,20 @@ const PRODUCT_MAPPING = {
     sku: "1041"
   },
   water: {
-    variantId: 1336767, // Placeholder - needs actual water variant ID
-    productId: 1339681, // Placeholder - needs actual water product ID
+    variantId: 1336767,
+    productId: 1339681,
     name: "Water Bottle",
     price: 10,
-    categoryId: 194537, // Placeholder - needs actual water category ID
+    categoryId: 194537,
     code: "1042",
     sku: "1042"
   },
   packing: {
-    variantId: 1336768, // Placeholder - needs actual packing variant ID
-    productId: 1339682, // Placeholder - needs actual packing product ID
+    variantId: 1336768,
+    productId: 1339682,
     name: "Packing Charges",
     price: 5,
-    categoryId: 194538, // Placeholder - needs actual packing category ID
+    categoryId: 194538,
     code: "1043",
     sku: "1043"
   }
@@ -175,7 +174,7 @@ export class UrbanPiperService {
       cost_price: null,
       orderSequence: orderSequence,
       sales_price: salesPrice,
-      modifiers: product.modifierId ? [{
+      modifiers: 'modifierId' in product ? [{
         id: product.modifierId,
         name: product.modifierName,
         short_name: product.modifierName,
@@ -394,26 +393,40 @@ export class UrbanPiperService {
   }
 
   public async createOrder(order: UrbanPiperOrder): Promise<UrbanPiperResponse> {
-    const response = await fetch(`${this.config.baseUrl}/bills`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.config.authToken}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-Prime-Language': 'en',
-        'X-Client': 'Web-1.100.24'
-      },
-      body: JSON.stringify(order)
-    });
+    // Create a proxy URL to bypass CORS
+    const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+    const targetUrl = `${this.config.baseUrl}/bills`;
+    
+    try {
+      const response = await fetch(proxyUrl + targetUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.config.authToken}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-Prime-Language': 'en',
+          'X-Client': 'Web-1.100.24',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(order)
+      });
 
-    if (!response.ok) {
-      throw new Error(`Failed to create order: ${response.status} ${response.statusText}`);
+      if (!response.ok) {
+        throw new Error(`Failed to create order: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('CORS Error - Urban Piper API call failed:', error);
+      throw new Error(`CORS Error: Unable to connect to Urban Piper API. This is likely due to browser security restrictions. Consider using a backend proxy or server-side integration.`);
     }
-
-    return await response.json();
   }
 
   public async settleOrder(orderId: string, order: UrbanPiperOrder): Promise<UrbanPiperResponse> {
+    // Create a proxy URL to bypass CORS  
+    const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+    const targetUrl = 'https://prime.urbanpiper.com/api/v1/sales/bills';
+    
     // Update order for settlement
     const settleOrder = {
       ...order.payload,
@@ -464,23 +477,29 @@ export class UrbanPiperService {
       register_name: this.config.registerName
     };
 
-    const response = await fetch('https://prime.urbanpiper.com/api/v1/sales/bills', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.config.authToken}`,
-        'Content-Type': 'application/json; charset=utf-8',
-        'Accept': 'application/json',
-        'X-Prime-Language': 'en',
-        'X-Client': 'Web-1.100.24'
-      },
-      body: JSON.stringify(settleOrder)
-    });
+    try {
+      const response = await fetch(proxyUrl + targetUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.config.authToken}`,
+          'Content-Type': 'application/json; charset=utf-8',
+          'Accept': 'application/json',
+          'X-Prime-Language': 'en',
+          'X-Client': 'Web-1.100.24',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(settleOrder)
+      });
 
-    if (!response.ok) {
-      throw new Error(`Failed to settle order: ${response.status} ${response.statusText}`);
+      if (!response.ok) {
+        throw new Error(`Failed to settle order: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('CORS Error - Urban Piper settle API call failed:', error);
+      throw new Error(`CORS Error: Unable to connect to Urban Piper API for settlement. This is likely due to browser security restrictions.`);
     }
-
-    return await response.json();
   }
 
   public async createAndSettleOrder(transaction: Transaction): Promise<{ createResponse: UrbanPiperResponse, settleResponse: UrbanPiperResponse }> {
