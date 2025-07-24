@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
 import { Send, Loader2, CheckCircle, AlertCircle, Settings, Eye } from 'lucide-react';
 import { Transaction } from '../types/transaction';
 import { urbanPiperAutomation, AutomationConfig, AutomationResult } from '../services/urbanPiperAutomation';
 import { useToast } from '../hooks/use-toast';
 import CorsNotice from './CorsNotice';
+import BrowserLimitationNotice from './BrowserLimitationNotice';
 
 interface UrbanPiperIntegrationProps {
   transactions: Transaction[];
@@ -218,6 +218,8 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
           </button>
         </div>
       </div>
+
+      <BrowserLimitationNotice />
 
       {showSettings && (
         <div className="bg-gray-50 rounded-lg p-4 mb-6">
