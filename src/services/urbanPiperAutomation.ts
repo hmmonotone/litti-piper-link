@@ -1,4 +1,3 @@
-
 import puppeteer, { Page } from 'puppeteer';
 import { Transaction } from '../types/transaction';
 
@@ -184,7 +183,8 @@ export class UrbanPiperAutomation {
     for (const selector of selectors) {
       try {
         await page.waitForSelector(selector, { timeout: 3000 });
-        await page.clear(selector);
+        // Clear the field by selecting all text and then typing
+        await page.click(selector, { clickCount: 3 }); // Triple click to select all
         await page.type(selector, quantity.toString());
         console.log(`Set ${itemType} quantity to ${quantity}`);
         return;
