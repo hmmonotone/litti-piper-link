@@ -1,5 +1,5 @@
 
-import puppeteer from 'puppeteer';
+import puppeteer, { Page } from 'puppeteer';
 import { Transaction } from '../types/transaction';
 
 export interface AutomationConfig {
@@ -101,7 +101,7 @@ export class UrbanPiperAutomation {
     }
   }
 
-  private async login(page: puppeteer.Page): Promise<void> {
+  private async login(page: Page): Promise<void> {
     console.log('Logging in...');
     
     // Wait for login form
@@ -121,7 +121,7 @@ export class UrbanPiperAutomation {
     console.log('Login successful');
   }
 
-  private async navigateToOrderCreation(page: puppeteer.Page): Promise<void> {
+  private async navigateToOrderCreation(page: Page): Promise<void> {
     console.log('Navigating to order creation...');
     
     // Look for common order creation navigation elements
@@ -147,7 +147,7 @@ export class UrbanPiperAutomation {
     console.log('Order creation page loaded');
   }
 
-  private async fillOrderDetails(page: puppeteer.Page, transaction: Transaction): Promise<void> {
+  private async fillOrderDetails(page: Page, transaction: Transaction): Promise<void> {
     console.log('Filling order details...');
 
     // Fill item quantities
@@ -173,7 +173,7 @@ export class UrbanPiperAutomation {
     console.log('Order details filled');
   }
 
-  private async fillQuantity(page: puppeteer.Page, itemType: string, quantity: number): Promise<void> {
+  private async fillQuantity(page: Page, itemType: string, quantity: number): Promise<void> {
     const selectors = [
       `#${itemType}-qty`,
       `[name="${itemType}"]`,
@@ -196,7 +196,7 @@ export class UrbanPiperAutomation {
     console.warn(`Could not find input for ${itemType}`);
   }
 
-  private async setOrderDate(page: puppeteer.Page, date: string): Promise<void> {
+  private async setOrderDate(page: Page, date: string): Promise<void> {
     try {
       const dateSelectors = [
         'input[type="date"]',
@@ -225,7 +225,7 @@ export class UrbanPiperAutomation {
     }
   }
 
-  private async submitOrder(page: puppeteer.Page): Promise<string> {
+  private async submitOrder(page: Page): Promise<string> {
     console.log('Submitting order...');
 
     // Click submit button
