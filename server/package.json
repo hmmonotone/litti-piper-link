@@ -1,0 +1,19 @@
+
+{
+  "name": "urbanpiper-automation-server",
+  "version": "1.0.0",
+  "description": "Selenium automation server for Urban Piper",
+  "main": "automation-service.js",
+  "scripts": {
+    "start": "node automation-service.js",
+    "dev": "nodemon automation-service.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "selenium-webdriver": "^4.15.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

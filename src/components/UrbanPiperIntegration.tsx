@@ -32,11 +32,12 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
   const [orderStatuses, setOrderStatuses] = useState<OrderStatus[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [settings, setSettings] = useState<AutomationSettings>({
+  const [settings, setSettings] = useState<AutomationSettings & { serverUrl: string }>({
     portalUrl: 'https://prime.urbanpiper.com',
     username: '',
     password: '',
-    headless: true
+    headless: true,
+    serverUrl: 'http://localhost:3001/api/automation'
   });
   const [selectedScreenshot, setSelectedScreenshot] = useState<string | null>(null);
   const { toast } = useToast();
@@ -46,13 +47,23 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
       portalUrl: settings.portalUrl,
       username: settings.username,
       password: settings.password,
-      headless: settings.headless
+      headless: settings.headless,
+      serverUrl: settings.serverUrl
     };
     
     Object.assign(urbanPiperAutomation, new (urbanPiperAutomation.constructor as any)(config));
   };
 
   const createSingleOrder = async (transaction: Transaction) => {
+    if (!settings.username || !settings.password) {
+      toast({
+        title: "Configuration Required",
+        description: "Please enter your Urban Piper credentials in settings",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setOrderStatuses(prev => [...prev.filter(s => s.transactionId !== transaction.id), {
       transactionId: transaction.id,
       status: 'creating'
@@ -61,8 +72,7 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
     try {
       updateAutomationConfig();
       
-      // Use the mock API method instead of actual automation
-      const result: AutomationResult = await urbanPiperAutomation.createOrderViaAPI(transaction);
+      const result: AutomationResult = await urbanPiperAutomation.createOrder(transaction);
       
       if (result.success) {
         setOrderStatuses(prev => [...prev.filter(s => s.transactionId !== transaction.id), {
@@ -75,8 +85,8 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
         onOrderCreated?.(transaction.id, result.orderId || '');
         
         toast({
-          title: "Order Created Successfully (Demo)",
-          description: `Mock order ${result.orderId} created for ₹${transaction.paidAmount}`,
+          title: "Order Created Successfully",
+          description: `Order ${result.orderId} created for ₹${transaction.paidAmount}`,
         });
       } else {
         throw new Error(result.error || 'Unknown error');
@@ -100,6 +110,15 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
   };
 
   const createAllOrders = async () => {
+    if (!settings.username || !settings.password) {
+      toast({
+        title: "Configuration Required",
+        description: "Please enter your Urban Piper credentials in settings",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsProcessing(true);
     
     try {
@@ -108,11 +127,11 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
       for (const transaction of transactions) {
         await createSingleOrder(transaction);
         // Add delay between orders
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
       
       toast({
-        title: "Bulk Order Creation Complete (Demo)",
+        title: "Bulk Order Creation Complete",
         description: `Processed ${transactions.length} transactions`,
       });
       
@@ -170,7 +189,7 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-2xl font-bold flex items-center gap-2">
           <Send className="h-6 w-6 text-blue-600" />
-          Urban Piper Automation (Demo)
+          Urban Piper Automation
         </h3>
         <div className="flex items-center gap-2">
           <button
@@ -193,7 +212,7 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
             ) : (
               <>
                 <Send className="h-4 w-4" />
-                Create All Orders (Demo)
+                Create All Orders
               </>
             )}
           </button>
@@ -204,7 +223,7 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
 
       {showSettings && (
         <div className="bg-gray-50 rounded-lg p-4 mb-6">
-          <h4 className="font-semibold mb-4">Demo Settings</h4>
+          <h4 className="font-semibold mb-4">Automation Settings</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Portal URL</label>
@@ -217,23 +236,35 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Username (Demo)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Server URL</label>
+              <input
+                type="url"
+                value={settings.serverUrl}
+                onChange={(e) => setSettings(prev => ({ ...prev, serverUrl: e.target.value }))}
+                className="w-full border border-gray-300 rounded px-3 py-2"
+                placeholder="http://localhost:3001/api/automation"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
               <input
                 type="text"
                 value={settings.username}
                 onChange={(e) => setSettings(prev => ({ ...prev, username: e.target.value }))}
                 className="w-full border border-gray-300 rounded px-3 py-2"
-                placeholder="demo@example.com"
+                placeholder="your-username"
+                required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password (Demo)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
               <input
                 type="password"
                 value={settings.password}
                 onChange={(e) => setSettings(prev => ({ ...prev, password: e.target.value }))}
                 className="w-full border border-gray-300 rounded px-3 py-2"
-                placeholder="demo123"
+                placeholder="your-password"
+                required
               />
             </div>
             <div className="flex items-center">
@@ -245,7 +276,7 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
                 className="mr-2"
               />
               <label htmlFor="headless" className="text-sm font-medium text-gray-700">
-                Headless mode (demo setting)
+                Headless mode
               </label>
             </div>
           </div>
@@ -279,7 +310,7 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
                   {status && (
                     <div className={`mt-2 text-sm ${getStatusColor(status.status)}`}>
                       {status.status === 'success' && status.orderId && (
-                        <span>Demo order created: {status.orderId}</span>
+                        <span>Order created: {status.orderId}</span>
                       )}
                       {status.status === 'error' && status.error && (
                         <span>Error: {status.error}</span>
@@ -304,7 +335,7 @@ const UrbanPiperIntegration: React.FC<UrbanPiperIntegrationProps> = ({
                     ) : (
                       <>
                         <Send className="h-4 w-4" />
-                        Create Order (Demo)
+                        Create Order
                       </>
                     )}
                   </button>

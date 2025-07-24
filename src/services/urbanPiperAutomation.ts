@@ -7,6 +7,7 @@ export interface AutomationConfig {
   password: string;
   headless?: boolean;
   timeout?: number;
+  serverUrl?: string; // Backend server URL
 }
 
 export interface AutomationResult {
@@ -23,34 +24,85 @@ export class UrbanPiperAutomation {
     this.config = {
       headless: true,
       timeout: 30000,
+      serverUrl: '/api/automation', // Default backend endpoint
       ...config
     };
   }
 
   async createOrder(transaction: Transaction): Promise<AutomationResult> {
-    console.log('Urban Piper automation attempted for transaction:', transaction.id);
+    console.log('Creating order via backend automation service for transaction:', transaction.id);
     
-    return {
-      success: false,
-      error: 'Browser automation is not supported in web applications. This feature requires server-side implementation with Node.js and Selenium WebDriver, or integration with Urban Piper\'s API endpoints.',
-    };
+    try {
+      const response = await fetch(this.config.serverUrl!, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'createOrder',
+          transaction,
+          config: {
+            portalUrl: this.config.portalUrl,
+            username: this.config.username,
+            password: this.config.password,
+            headless: this.config.headless,
+            timeout: this.config.timeout
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result;
+
+    } catch (error) {
+      console.error('Error calling automation service:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to connect to automation service'
+      };
+    }
   }
 
-  // Mock method for demonstration - in a real implementation, this would be a server endpoint
-  async createOrderViaAPI(transaction: Transaction): Promise<AutomationResult> {
-    // This would be implemented as a server-side API call
-    console.log('Creating order via API for transaction:', transaction.id);
+  async createOrderBatch(transactions: Transaction[]): Promise<AutomationResult[]> {
+    console.log('Creating batch orders via backend automation service');
     
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Mock successful response
-    const mockOrderId = `UP${Date.now().toString().slice(-6)}`;
-    
-    return {
-      success: true,
-      orderId: mockOrderId,
-    };
+    try {
+      const response = await fetch(this.config.serverUrl!, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'createOrderBatch',
+          transactions,
+          config: {
+            portalUrl: this.config.portalUrl,
+            username: this.config.username,
+            password: this.config.password,
+            headless: this.config.headless,
+            timeout: this.config.timeout
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const results = await response.json();
+      return results;
+
+    } catch (error) {
+      console.error('Error calling batch automation service:', error);
+      return transactions.map(t => ({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to connect to automation service'
+      }));
+    }
   }
 }
 
@@ -59,5 +111,6 @@ export const urbanPiperAutomation = new UrbanPiperAutomation({
   portalUrl: 'https://prime.urbanpiper.com',
   username: '',
   password: '',
-  headless: true
+  headless: true,
+  serverUrl: '/api/automation'
 });
