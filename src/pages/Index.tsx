@@ -1,9 +1,9 @@
-
 import React, { useState } from 'react';
 import { Upload, FileText, TrendingUp, AlertCircle, Download, CheckCircle } from 'lucide-react';
 import FileUploadSection from '../components/FileUploadSection';
 import TransactionTable from '../components/TransactionTable';
 import ProcessingStats from '../components/ProcessingStats';
+import UrbanPiperIntegration from '../components/UrbanPiperIntegration';
 import { Transaction } from '../types/transaction';
 
 const Index = () => {
@@ -29,6 +29,10 @@ const Index = () => {
     }, { total: 0, processed: 0, failed: 0, adjustments: 0 });
     
     setProcessingStats(stats);
+  };
+
+  const handleOrderCreated = (transactionId: string, orderId: string) => {
+    console.log(`Order ${orderId} created for transaction ${transactionId}`);
   };
 
   const handleDownloadReport = () => {
@@ -99,11 +103,16 @@ const Index = () => {
             )}
           </div>
 
-          {/* Right Column - Transaction Table */}
-          <div className="lg:col-span-2">
+          {/* Right Column - Transaction Table & Urban Piper Integration */}
+          <div className="lg:col-span-2 space-y-8">
             <TransactionTable 
               transactions={transactions}
               isProcessing={isProcessing}
+            />
+            
+            <UrbanPiperIntegration
+              transactions={transactions}
+              onOrderCreated={handleOrderCreated}
             />
           </div>
         </div>
