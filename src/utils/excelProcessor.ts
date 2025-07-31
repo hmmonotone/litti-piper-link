@@ -88,11 +88,13 @@ export const processExcelFile = async (
       // Filter conditions:
       // 1. Must have a valid transaction date
       // 2. Must be a credit transaction (credit > 0)
-      // 3. Must be within the specified date range (if provided)
+      // 3. Must contain "dlittic" at the end of particulars
+      // 4. Must be within the specified date range (if provided)
       if (isValidDate && 
           credit > 0 && 
+          particulars.toLowerCase().trim().endsWith('dlittic') &&
           isInDateRange) {
-        console.log(`Processing credit transaction: ${particulars} - ₹${credit}`);
+        console.log(`Processing dLittic credit transaction: ${particulars} - ₹${credit}`);
         
         // Parse order details from transaction amount
         const orderDetails = parseOrderFromAmount(credit);
@@ -130,7 +132,7 @@ export const processExcelFile = async (
       }
     }
     
-    console.log(`Processed ${transactions.length} credit transactions`);
+    console.log(`Processed ${transactions.length} dLittic credit transactions`);
     return transactions;
     
   } catch (error) {
