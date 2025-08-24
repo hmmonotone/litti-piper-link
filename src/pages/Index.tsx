@@ -1,8 +1,10 @@
+
 import React, { useState } from 'react';
 import { Upload, FileText, TrendingUp, AlertCircle, Download, CheckCircle } from 'lucide-react';
 import FileUploadSection from '../components/FileUploadSection';
 import TransactionTable from '../components/TransactionTable';
 import ProcessingStats from '../components/ProcessingStats';
+import SalesSummary from '../components/SalesSummary';
 import UrbanPiperIntegration from '../components/UrbanPiperIntegration';
 import { Transaction } from '../types/transaction';
 
@@ -16,13 +18,17 @@ const Index = () => {
     adjustments: 0,
     totalPaidAmount: 0,
     totalExpectedCost: 0,
-    totalAdjustment: 0
+    totalAdjustment: 0,
+    totalFullPlate: 0,
+    totalHalfPlate: 0,
+    totalWater: 0,
+    totalPacking: 0
   });
 
   const handleFileProcessed = (processedTransactions: Transaction[]) => {
     setTransactions(processedTransactions);
     
-    // Calculate stats including totals
+    // Calculate stats including totals and item counts
     const stats = processedTransactions.reduce((acc, t) => {
       acc.total++;
       if (t.status === 'success') acc.processed++;
@@ -34,6 +40,12 @@ const Index = () => {
       acc.totalExpectedCost += t.expectedCost;
       acc.totalAdjustment += t.adjustment;
       
+      // Calculate item totals
+      acc.totalFullPlate += t.fullPlate;
+      acc.totalHalfPlate += t.halfPlate;
+      acc.totalWater += t.water;
+      acc.totalPacking += t.packing;
+      
       return acc;
     }, { 
       total: 0, 
@@ -42,7 +54,11 @@ const Index = () => {
       adjustments: 0,
       totalPaidAmount: 0,
       totalExpectedCost: 0,
-      totalAdjustment: 0
+      totalAdjustment: 0,
+      totalFullPlate: 0,
+      totalHalfPlate: 0,
+      totalWater: 0,
+      totalPacking: 0
     });
     
     setProcessingStats(stats);
@@ -90,6 +106,13 @@ const Index = () => {
             Automated order processing system for IDFC First Bank statements
           </p>
         </div>
+
+        {/* Sales Summary - Full Width */}
+        {transactions.length > 0 && (
+          <div className="mb-8">
+            <SalesSummary stats={processingStats} />
+          </div>
+        )}
 
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

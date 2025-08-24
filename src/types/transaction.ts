@@ -23,4 +23,8 @@ export interface ProcessingStats {
   totalPaidAmount?: number;
   totalExpectedCost?: number;
   totalAdjustment?: number;
+  totalFullPlate?: number;
+  totalHalfPlate?: number;
+  totalWater?: number;
+  totalPacking?: number;
 }
