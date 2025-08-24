@@ -20,4 +20,7 @@ export interface ProcessingStats {
   processed: number;
   failed: number;
   adjustments: number;
+  totalPaidAmount?: number;
+  totalExpectedCost?: number;
+  totalAdjustment?: number;
 }

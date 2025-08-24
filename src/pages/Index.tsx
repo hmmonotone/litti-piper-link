@@ -13,20 +13,37 @@ const Index = () => {
     total: 0,
     processed: 0,
     failed: 0,
-    adjustments: 0
+    adjustments: 0,
+    totalPaidAmount: 0,
+    totalExpectedCost: 0,
+    totalAdjustment: 0
   });
 
   const handleFileProcessed = (processedTransactions: Transaction[]) => {
     setTransactions(processedTransactions);
     
-    // Calculate stats
+    // Calculate stats including totals
     const stats = processedTransactions.reduce((acc, t) => {
       acc.total++;
       if (t.status === 'success') acc.processed++;
       if (t.status === 'failed') acc.failed++;
       if (t.adjustment !== 0) acc.adjustments++;
+      
+      // Calculate totals
+      acc.totalPaidAmount += t.paidAmount;
+      acc.totalExpectedCost += t.expectedCost;
+      acc.totalAdjustment += t.adjustment;
+      
       return acc;
-    }, { total: 0, processed: 0, failed: 0, adjustments: 0 });
+    }, { 
+      total: 0, 
+      processed: 0, 
+      failed: 0, 
+      adjustments: 0,
+      totalPaidAmount: 0,
+      totalExpectedCost: 0,
+      totalAdjustment: 0
+    });
     
     setProcessingStats(stats);
   };

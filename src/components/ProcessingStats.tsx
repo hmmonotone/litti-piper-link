@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { CheckCircle, AlertCircle, TrendingUp, DollarSign } from 'lucide-react';
+import { CheckCircle, AlertCircle, TrendingUp, DollarSign, Receipt } from 'lucide-react';
 import { ProcessingStats as StatsType } from '../types/transaction';
 
 interface ProcessingStatsProps {
@@ -54,6 +54,32 @@ const ProcessingStats: React.FC<ProcessingStatsProps> = ({ stats }) => {
           </div>
         ))}
       </div>
+
+      {/* Total Summary Section */}
+      {stats.total > 0 && (
+        <div className="mt-6 pt-4 border-t border-gray-200">
+          <h4 className="text-md font-semibold mb-3 flex items-center gap-2">
+            <Receipt className="h-4 w-4 text-gray-600" />
+            Total Summary
+          </h4>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Total Amount Received</span>
+              <span className="text-md font-semibold text-green-600">₹{stats.totalPaidAmount?.toFixed(2) || '0.00'}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Total Expected Cost</span>
+              <span className="text-md font-semibold text-blue-600">₹{stats.totalExpectedCost?.toFixed(2) || '0.00'}</span>
+            </div>
+            <div className="flex justify-between items-center border-t pt-2">
+              <span className="text-sm text-gray-600">Net Adjustment</span>
+              <span className={`text-md font-semibold ${(stats.totalAdjustment || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {(stats.totalAdjustment || 0) >= 0 ? '+' : ''}₹{stats.totalAdjustment?.toFixed(2) || '0.00'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
