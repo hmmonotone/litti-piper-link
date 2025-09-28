@@ -1,6 +1,6 @@
 
 import React, { useCallback, useState } from 'react';
-import { Upload, FileText, Loader2, Filter } from 'lucide-react';
+import { Upload, FileText, Loader2, Filter, Plus, X } from 'lucide-react';
 import { Transaction } from '../types/transaction';
 import { processExcelFile } from '../utils/excelProcessor';
 import DateRangeFilter from './DateRangeFilter';
@@ -19,6 +19,8 @@ const FileUploadSection: React.FC<FileUploadSectionProps> = ({
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [keyword, setKeyword] = useState<string>('dlittic');
+  const [customKeywords, setCustomKeywords] = useState<string[]>([]);
+  const [newKeyword, setNewKeyword] = useState<string>('');
 
   const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -42,6 +44,20 @@ const FileUploadSection: React.FC<FileUploadSectionProps> = ({
   const handleClearFilter = () => {
     setStartDate(null);
     setEndDate(null);
+  };
+
+  const handleAddKeyword = () => {
+    if (newKeyword.trim() && !customKeywords.includes(newKeyword.trim()) && !['dlittic', 'swiggy', 'zomato', 'uber'].includes(newKeyword.trim())) {
+      setCustomKeywords([...customKeywords, newKeyword.trim()]);
+      setNewKeyword('');
+    }
+  };
+
+  const handleRemoveKeyword = (keywordToRemove: string) => {
+    setCustomKeywords(customKeywords.filter(k => k !== keywordToRemove));
+    if (keyword === keywordToRemove) {
+      setKeyword('dlittic');
+    }
   };
 
   return (
@@ -68,20 +84,76 @@ const FileUploadSection: React.FC<FileUploadSectionProps> = ({
         <p className="text-sm text-gray-600 mb-4">
           Filter transactions ending with specific keyword
         </p>
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Filter Keyword
-          </label>
-          <select
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-          >
-            <option value="dlittic">dlittic</option>
-            <option value="swiggy">swiggy</option>
-            <option value="zomato">zomato</option>
-            <option value="uber">uber</option>
-          </select>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Filter Keyword
+            </label>
+            <select
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+            >
+              <option value="dlittic">dlittic</option>
+              <option value="swiggy">swiggy</option>
+              <option value="zomato">zomato</option>
+              <option value="uber">uber</option>
+              {customKeywords.map((customKeyword) => (
+                <option key={customKeyword} value={customKeyword}>
+                  {customKeyword}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Add Custom Keyword
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newKeyword}
+                onChange={(e) => setNewKeyword(e.target.value)}
+                placeholder="Enter new keyword"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                onKeyPress={(e) => e.key === 'Enter' && handleAddKeyword()}
+              />
+              <button
+                onClick={handleAddKeyword}
+                disabled={!newKeyword.trim()}
+                className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-1"
+              >
+                <Plus className="h-4 w-4" />
+                Add
+              </button>
+            </div>
+          </div>
+
+          {customKeywords.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Custom Keywords
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {customKeywords.map((customKeyword) => (
+                  <div
+                    key={customKeyword}
+                    className="flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-sm"
+                  >
+                    <span>{customKeyword}</span>
+                    <button
+                      onClick={() => handleRemoveKeyword(customKeyword)}
+                      className="text-blue-600 hover:text-blue-800"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <p className="text-xs text-gray-500">
             Currently filtering for transactions ending with: <span className="font-semibold text-blue-600">{keyword}</span>
           </p>
