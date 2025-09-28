@@ -93,7 +93,7 @@ export const processExcelFile = async (
       // 4. Must be within the specified date range (if provided)
       if (isValidDate && 
           credit > 0 && 
-          particulars.toLowerCase().trim().endsWith(keyword.toLowerCase()) &&
+          particulars.trim().endsWith(keyword) &&
           isInDateRange) {
         console.log(`Processing ${keyword} credit transaction: ${particulars} - ₹${credit}`);
         
