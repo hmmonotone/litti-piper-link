@@ -1,6 +1,6 @@
 
 import React, { useCallback, useState } from 'react';
-import { Upload, FileText, Loader2 } from 'lucide-react';
+import { Upload, FileText, Loader2, Filter } from 'lucide-react';
 import { Transaction } from '../types/transaction';
 import { processExcelFile } from '../utils/excelProcessor';
 import DateRangeFilter from './DateRangeFilter';
@@ -18,6 +18,7 @@ const FileUploadSection: React.FC<FileUploadSectionProps> = ({
 }) => {
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
+  const [keyword, setKeyword] = useState<string>('dlittic');
 
   const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -29,14 +30,14 @@ const FileUploadSection: React.FC<FileUploadSectionProps> = ({
       // Simulate processing delay
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      const transactions = await processExcelFile(file, startDate, endDate);
+      const transactions = await processExcelFile(file, startDate, endDate, keyword);
       onFileProcessed(transactions);
     } catch (error) {
       console.error('Error processing file:', error);
     } finally {
       setIsProcessing(false);
     }
-  }, [onFileProcessed, setIsProcessing, startDate, endDate]);
+  }, [onFileProcessed, setIsProcessing, startDate, endDate, keyword]);
 
   const handleClearFilter = () => {
     setStartDate(null);
@@ -57,6 +58,34 @@ const FileUploadSection: React.FC<FileUploadSectionProps> = ({
           onEndDateChange={setEndDate}
           onClear={handleClearFilter}
         />
+      </div>
+
+      <div className="bg-white rounded-xl shadow-lg p-6">
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Filter className="h-5 w-5 text-blue-600" />
+          Keyword Filter
+        </h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Filter transactions ending with specific keyword
+        </p>
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Filter Keyword
+          </label>
+          <select
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+          >
+            <option value="dlittic">dlittic</option>
+            <option value="swiggy">swiggy</option>
+            <option value="zomato">zomato</option>
+            <option value="uber">uber</option>
+          </select>
+          <p className="text-xs text-gray-500">
+            Currently filtering for transactions ending with: <span className="font-semibold text-blue-600">{keyword}</span>
+          </p>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-lg p-6">
