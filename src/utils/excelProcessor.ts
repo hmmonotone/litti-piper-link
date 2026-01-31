@@ -3,8 +3,8 @@ import { Transaction } from '../types/transaction';
 
 // Menu prices in Indian Rupees
 const MENU_PRICES = {
-  fullPlate: 89,
-  halfPlate: 49,
+  fullPlate: 99,
+  halfPlate: 59,
   water: 10,
   packing: 5
 };
