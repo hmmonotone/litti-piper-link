@@ -47,7 +47,7 @@ const FileUploadSection: React.FC<FileUploadSectionProps> = ({
   };
 
   const handleAddKeyword = () => {
-    if (newKeyword.trim() && !customKeywords.includes(newKeyword.trim()) && !['dlittic', 'swiggy', 'zomato', 'uber'].includes(newKeyword.trim())) {
+    if (newKeyword.trim() && !customKeywords.includes(newKeyword.trim()) && !['dlittic', 'dLITTIc', 'swiggy', 'zomato', 'uber'].includes(newKeyword.trim())) {
       setCustomKeywords([...customKeywords, newKeyword.trim()]);
       setNewKeyword('');
     }
@@ -95,6 +95,7 @@ const FileUploadSection: React.FC<FileUploadSectionProps> = ({
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
             >
               <option value="dlittic">dlittic</option>
+              <option value="dLITTIc">dLITTIc</option>
               <option value="swiggy">swiggy</option>
               <option value="zomato">zomato</option>
               <option value="uber">uber</option>
